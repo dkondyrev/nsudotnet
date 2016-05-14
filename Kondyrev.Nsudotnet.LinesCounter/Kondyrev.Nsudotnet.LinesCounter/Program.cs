@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace Kondyrev.Nsudotnet.LinesCounter
 {
@@ -34,12 +35,18 @@ namespace Kondyrev.Nsudotnet.LinesCounter
         static int CountFileLines(FileInfo file)
         {
             int count = 0;
+            Regex regex = new Regex("/\\*.*?\\*/");
             using (StreamReader reader = file.OpenText())
             {
                 string line;
                 bool commentFlag = false;
                 while ((line = reader.ReadLine()) != null)
                 {
+                    if (line.Contains(@"/*") && line.Contains(@"*/"))
+                    {
+                        line = regex.Replace(line, "");
+                    }
+
                     if (line == string.Empty)
                     {
                         continue;
@@ -66,7 +73,9 @@ namespace Kondyrev.Nsudotnet.LinesCounter
                     {
                         if (line.Contains(@"*/"))
                         {
-                            commentFlag = false;
+                            if (!line.Contains(@"/*")){
+                                commentFlag = false;
+                            }
                             if (!line.EndsWith(@"*/"))
                             {
                                 ++count;
