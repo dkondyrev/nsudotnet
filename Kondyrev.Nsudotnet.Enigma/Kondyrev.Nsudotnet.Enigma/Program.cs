@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace Kondyrev.Nsudotnet.Enigma
 {
@@ -128,24 +127,24 @@ namespace Kondyrev.Nsudotnet.Enigma
         {
             try
             {
-                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None))
+                using (StreamReader reader = file.OpenText())
                 {
-                    byte[] lengthBuffer = new byte[8];
-                    stream.Read(lengthBuffer, 0, lengthBuffer.Length);
+                    char[] lengthBuffer = new char[8];
+                    reader.Read(lengthBuffer, 0, lengthBuffer.Length);
                     int length = BitConverter.ToInt32(FromBase64(lengthBuffer), 0);
-                    byte[] keyBuffer = new byte[length];
-                    stream.Read(keyBuffer, 0, keyBuffer.Length);
-                    keyBuffer = FromBase64(keyBuffer);
+                    char[] keyBuffer = new char[length];
+                    reader.Read(keyBuffer, 0, keyBuffer.Length);
+                    byte[] key = FromBase64(keyBuffer);
 
-                    stream.Read(lengthBuffer, 0, lengthBuffer.Length);
+                    reader.Read(lengthBuffer, 0, lengthBuffer.Length);
                     length = BitConverter.ToInt32(FromBase64(lengthBuffer), 0);
-                    byte[] ivBuffer = new byte[length];
-                    stream.Read(ivBuffer, 0, ivBuffer.Length);
-                    ivBuffer = FromBase64(ivBuffer);
+                    char[] ivBuffer = new char[length];
+                    reader.Read(ivBuffer, 0, ivBuffer.Length);
+                    byte[] iv = FromBase64(ivBuffer);
 
                     byte[][] info = new byte[2][];
-                    info[0] = keyBuffer;
-                    info[1] = ivBuffer;
+                    info[0] = key;
+                    info[1] = iv;
                     return info;
                 }
             }
@@ -158,31 +157,28 @@ namespace Kondyrev.Nsudotnet.Enigma
 
         static void WriteKey(FileInfo file, byte[] key, byte[] iv)
         {
-            using (FileStream stream = file.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+            using (StreamWriter writer = file.CreateText())
             {
-                key = ToBase64(key);
-                byte[] keyLength = BitConverter.GetBytes(key.Length);
-                keyLength = ToBase64(keyLength);
-                stream.Write(keyLength, 0, keyLength.Length);
-                stream.Write(key, 0, key.Length);
+                string keyString = ToBase64(key);
+                byte[] keyLength = BitConverter.GetBytes(keyString.Length);
+                writer.Write(ToBase64(keyLength));
+                writer.Write(keyString);
 
-                iv = ToBase64(iv);
-                byte[] ivLength = BitConverter.GetBytes(iv.Length);
-                ivLength = ToBase64(ivLength);
-                stream.Write(ivLength, 0, ivLength.Length);
-                stream.Write(iv, 0, iv.Length);
+                string ivString = ToBase64(iv);
+                byte[] ivLength = BitConverter.GetBytes(ivString.Length);
+                writer.Write(ToBase64(ivLength));
+                writer.Write(ivString);
             }
         }
 
-        static byte[] ToBase64(byte[] data)
+        static string ToBase64(byte[] data)
         {
-            string str = Convert.ToBase64String(data);
-            return Encoding.ASCII.GetBytes(str);
+            return Convert.ToBase64String(data);
         }
 
-        static byte[] FromBase64(byte[] data)
+        static byte[] FromBase64(char[] data)
         {
-            return Convert.FromBase64String(Encoding.ASCII.GetString(data));
+            return Convert.FromBase64CharArray(data, 0, data.Length);
         }
     }
 }
