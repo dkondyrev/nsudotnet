@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Text.RegularExpressions;
 
 namespace Kondyrev.Nsudotnet.LinesCounter
 {
@@ -35,56 +34,56 @@ namespace Kondyrev.Nsudotnet.LinesCounter
         static int CountFileLines(FileInfo file)
         {
             int count = 0;
-            Regex regex = new Regex("/\\*.*?\\*/");
             using (StreamReader reader = file.OpenText())
             {
                 string line;
                 bool commentFlag = false;
                 while ((line = reader.ReadLine()) != null)
                 {
-                    if (line.Contains(@"/*") && line.Contains(@"*/"))
-                    {
-                        line = regex.Replace(line, "");
-                    }
-
                     if (line == string.Empty)
                     {
                         continue;
                     }
-                    if (!commentFlag)
-                    {
-                        if (!line.StartsWith(@"//"))
-                        {
-                            if (line.Contains(@"/*"))
-                            {
-                                if (!line.StartsWith(@"/*"))
-                                {
-                                    ++count;
-                                }
-                                commentFlag = true;
-                            }
-                            else
-                            {
-                                ++count;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (line.Contains(@"*/"))
-                        {
-                            if (!line.Contains(@"/*")){
-                                commentFlag = false;
-                            }
-                            if (!line.EndsWith(@"*/"))
-                            {
-                                ++count;
-                            }
-                        }
-                    }
+                    ProcessLine(line, ref commentFlag, ref count);
                 }
             }
             return count;
+        }
+
+        static void ProcessLine(string line, ref bool commentFlag, ref int count)
+        {
+            bool firstFlag = true;
+            for (int i = 0; i < line.Length - 1; ++i)
+            {
+                if (commentFlag)
+                {
+                    if (line[i] == '*' && line[i + 1] == '/')
+                    {
+                        ++i;
+                        commentFlag = false;
+                    }
+                }
+                else
+                {
+                    if (line[i] == '/')
+                    {
+                        if (line[i + 1] == '*')
+                        {
+                            ++i;
+                            commentFlag = true;
+                        }
+                        else if (line[i + 1] == '/')
+                        {
+                            break;
+                        }
+                    }
+                    else if (firstFlag)
+                    {
+                        firstFlag = false;
+                        ++count;
+                    }
+                }
+            }
         }
     }
 }
